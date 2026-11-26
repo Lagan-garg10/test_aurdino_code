@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Alert System</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #222;
+        }
+
+        .section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        pre {
+            background: #222;
+            color: #00ff90;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, monospace;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="section">
+        <h1>Wiring</h1>
+
+        <ul>
+            <li><strong>Thermistor Wire 1:</strong> Connect to Arduino 5V.</li>
+            <li><strong>Thermistor Wire 2:</strong> Connect to Arduino A0 and one leg of the 10kΩ resistor.</li>
+            <li><strong>10kΩ Resistor (other leg):</strong> Connect to Arduino GND.</li>
+            <li><strong>Buzzer Positive (+):</strong> Connect to Arduino Digital Pin 8.</li>
+            <li><strong>Buzzer Negative (-):</strong> Connect to Arduino GND.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h1>Arduino Code</h1>
+
+        <pre><code>
+#include &lt;math.h&gt;
+
+// Pin Definitions
+const int thermistorPin = A0;
+const int buzzerPin = 8;
+
+// Temperature Threshold in Celsius
+const float tempThreshold = 30.0;
+
+// Thermistor Constants for 10K NTC (Beta 3950)
+const float seriesResistor = 10000.0;
+const float nominalResistance = 10000.0;
+const float nominalTemp = 25.0;
+const float bCoefficient = 3950.0;
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(buzzerPin, OUTPUT);
+    digitalWrite(buzzerPin, LOW);
+}
+
+void loop() {
+    int adcValue = analogRead(thermistorPin);
+
+    // Avoid division by zero
+    if (adcValue <= 0 || adcValue >= 1023) {
+        Serial.println("Invalid thermistor reading");
+        digitalWrite(buzzerPin, LOW);
+        delay(500);
+        return;
+    }
+
+    // Convert ADC reading to resistance
+    float resistance = seriesResistor /
+        ((1023.0 / adcValue) - 1.0);
+
+    // Calculate temperature
+    float steinhart = resistance / nominalResistance;
+    steinhart = log(steinhart);
+    steinhart /= bCoefficient;
+    steinhart += 1.0 / (nominalTemp + 273.15);
+    steinhart = 1.0 / steinhart;
+
+    float temperatureC = steinhart - 273.15;
+
+    // Print temperature
+    Serial.print("Temperature: ");
+    Serial.print(temperatureC);
+    Serial.println(" °C");
+
+    // Buzzer Control
+    if (temperatureC > tempThreshold) {
+        digitalWrite(buzzerPin, HIGH);
+    } else {
+        digitalWrite(buzzerPin, LOW);
+    }
+
+    delay(500);
+}
+        </code></pre>
+    </div>
+
+</body>
+</html>
